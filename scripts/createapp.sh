@@ -7,10 +7,9 @@ set -x
 set -o pipefail
 export SHELLOPTS
 
+PYTHON=python3
 gcmd="goal -d ../net1/Primary"
 MASTER=$(${gcmd} account list|awk '{ print $3 }'|tail -1)
-
-PYTHON=python3
 
 PYTEAL_APPROVAL_PROG="../contracts/stateful.py"
 PYTEAL_CLEAR_PROG="../contracts/clear.py"

@@ -10,10 +10,8 @@ export SHELLOPTS
 gcmd="goal -d ../net1/Primary"
 MASTER=$(${gcmd} account list|awk '{ print $3 }'|tail -1)
 
+# compile contract account to get address
 TEAL_ESCROW="../contracts/escrow.teal"
-APP_ID=1
-
-# get escrow address
 ESCROW_ADDRESS=$(
   ${gcmd} clerk compile -n "$TEAL_ESCROW" \
   | awk '{ print $2 }' \
@@ -21,8 +19,7 @@ ESCROW_ADDRESS=$(
 )
 echo "Escrow Address = $ESCROW_ADDRESS"
 
-# set escrow address
-${gcmd} app call --app-id "$APP_ID" --app-arg "str:set_escrow" --app-arg "addr:$ESCROW_ADDRESS" -f "$MASTER"
+# fund escrow
+AMOUNT=10000000000
+${gcmd} clerk send -a "$AMOUNT" -f "$MASTER" -t "$ESCROW_ADDRESS"
 
-# read global state to see if set
-${gcmd} app read --app-id "$APP_ID" --guess-format --global --from "$MASTER"

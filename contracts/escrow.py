@@ -16,6 +16,7 @@ def contract_account(app_id):
         Assert(Txn.group_index() == Int(1)),
         Assert(rekey_check),
         Assert(fee_check),
+        Assert(Txn.type_enum() == TxnType.Payment),
         Assert(close_remainder_to_check),
         Assert(linked_with_app_call),
         Int(1)

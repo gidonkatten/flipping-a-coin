@@ -16,8 +16,12 @@ def stateful():
     ])
 
     # flip coin
+    bet = App.globalGetEx(Int(0), Bytes('bet'))
     on_flip = Seq([
         Assert(Global.group_size() == Int(2)),
+        # check have not flipped
+        bet,
+        Assert(Not(bet.hasValue())),
         # check payment
         Assert(Gtxn[1].type_enum() == TxnType.Payment),
         Assert(Gtxn[1].sender() == Txn.sender()),
@@ -30,7 +34,6 @@ def stateful():
     ])
 
     # guess
-    bet = App.globalGetEx(Int(0), Bytes('bet'))
     guess = App.globalGetEx(Int(0), Bytes('guess'))
     one_day = Int(86400)
     on_guess = Seq([
@@ -55,11 +58,16 @@ def stateful():
     # reveal
     # heads / tail, nonce
     revealed = Btoi(Txn.application_args[1]) >= Int(1)
-    nonce = Txn.application_args[1]
+    nonce = Txn.application_args[2]
     preimage = Concat(Substring(Bytes('01'), revealed, revealed + Int(1)), nonce)
     correct = Eq(App.globalGet(Bytes('secret')), Sha256(preimage))
     on_reveal = Seq([
         Assert(Global.group_size() == Int(1)),
+        # check there was a bet
+        bet,
+        Assert(bet.hasValue()),
+        guess,
+        Assert(guess.hasValue()),
         Assert(correct),
         App.globalPut(Bytes('result'), revealed),
         Int(1)
@@ -98,7 +106,7 @@ def stateful():
         # check payment
         Assert(Gtxn[1].type_enum() == TxnType.Payment),
         Assert(Gtxn[1].sender() == App.globalGet(Bytes('escrow'))),
-        Assert(Gtxn[1].receiver() == App.globalGet(Bytes('escrow'))),
+        Assert(Gtxn[1].receiver() == Txn.sender()),
         Assert(Gtxn[1].amount() == (bet.value() * Int(2))),
         # clean up global state for next coin flip
         App.globalDel(Bytes('bet')),
@@ -107,6 +115,7 @@ def stateful():
         App.globalDel(Bytes('guess')),
         App.globalDel(Bytes('guesser')),
         App.globalDel(Bytes('expiry')),
+        App.globalDel(Bytes('result')),
         Int(1)
     ])
 
@@ -122,7 +131,7 @@ def stateful():
         [Txn.application_args[0] == Bytes("flip"), on_flip],
         [Txn.application_args[0] == Bytes("guess"), on_guess],
         [Txn.application_args[0] == Bytes("reveal"), on_reveal],
-        [Txn.application_args[0] == Bytes("flip"), on_claim]
+        [Txn.application_args[0] == Bytes("claim"), on_claim]
     )
 
     return And(Txn.group_index() == Int(0), program)
